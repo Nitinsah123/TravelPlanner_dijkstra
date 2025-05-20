@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Travel Planner</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    label {
+      display: block;
+      margin: 15px 0 5px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 12px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #28a745;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    #result {
+      margin-top: 30px;
+      background: white;
+      padding: 20px;
+      border-radius: 6px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Travel Planner</h1>
+  <label for="source">Source City:</label>
+  <input type="text" id="source" placeholder="Enter source city" />
+
+  <label for="destination">Destination City:</label>
+  <input type="text" id="destination" placeholder="Enter destination city" />
+
+  <button id="findPathBtn">Find Path</button>
+
+  <div id="result"></div>
+
+  <script>
+    document.getElementById("findPathBtn").addEventListener("click", () => {
+      const source = document.getElementById("source").value.trim();
+      const destination = document.getElementById("destination").value.trim();
+      const resultDiv = document.getElementById("result");
+
+      if (!source || !destination) {
+        resultDiv.innerHTML = '<p style="color:red;">Please enter both source and destination cities.</p>';
+        return;
+      }
+
+      resultDiv.innerHTML = "<p>Loading...</p>";
+
+      fetch(`http://localhost:4567/shortest-path?source=${encodeURIComponent(source)}&destination=${encodeURIComponent(destination)}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (typeof data === "string") {
+            resultDiv.innerHTML = `<p style="color:red;">${data}</p>`;
+            return;
+          }
+          const citiesCoveredInline = data.cities.join(" → ");
+          const citiesListItems = data.cities.map((city, idx) => `<li>${idx + 1}. ${city}</li>`).join("");
+          const distance = data.totalDistance;
+          const time = data.estimatedTime.toFixed(2);
+          const mapsUrl = data.googleMapsUrl;
+
+          resultDiv.innerHTML = `
+            <h2>Shortest Path</h2>
+            <p><strong>Cities Covered:</strong> ${citiesCoveredInline}</p>
+            <p><strong>List of Cities Covered:</strong></p>
+            <ol>
+              ${citiesListItems}
+            </ol>
+            <p><strong>Total Distance:</strong> ${distance} km</p>
+            <p><strong>Estimated Time:</strong> ${time} hours</p>
+            <p><a href="${mapsUrl}" target="_blank" rel="noopener">View Route on Google Maps</a></p>
+          `;
+        })
+        .catch(err => {
+          resultDiv.innerHTML = `<p style="color:red;">Failed to fetch data from server. Make sure your Java backend is running.</p>`;
+          console.error(err);
+        });
+    });
+  </script>
+</body>
+</html>
